@@ -1,4 +1,4 @@
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 import os
 
 
@@ -10,11 +10,28 @@ def preprocess(img, x=550,
     # apply whatever thransforms are in exif
     img = ImageOps.exif_transpose(img)
 
-    img = ImageOps.grayscale(img)
-    img = ImageOps.autocontrast(img)
-
     # we don't need the whole thing
     img = img.crop((x, y, right, bottom))
+
+    # "denoise"
+    img = img.filter(ImageFilter.MedianFilter(size=3))
+    # sharpen
+    img = img.filter(ImageFilter.SHARPEN)
+    # "denoise"
+    img = img.filter(ImageFilter.MedianFilter(size=3))
+
+    # ENHANCE!
+    en = ImageEnhance.Color(img)
+    img = en.enhance(0)
+
+    en = ImageEnhance.Contrast(img)
+    img = en.enhance(2)
+
+    en = ImageEnhance.Brightness(img)
+    img = en.enhance(1.5)
+
+    # add border
+    img = ImageOps.expand(img, border=100, fill='white')
 
     return img
 
@@ -37,7 +54,6 @@ def batch(in_path="Kvittering/Camera/",
 
 def main():
     print("preprocess starting")
-    # preprocess(Image.open("test_raw.jpg")).show()
     batch()
     print("preprocess complete")
 
