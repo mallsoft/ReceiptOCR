@@ -28,7 +28,7 @@ def batch(in_path="Kvittering/Camera/",
 
         img = preprocess(img)
 
-        img.save(out_path + f"p_{name}")
+        img.save(out_path + f"p_{i}.jpg")
 
         print(f"-> ({i+1}/{len(filesToProcess)}) processed -> {name}\r",
               end="\r", flush=True)
