@@ -1,16 +1,31 @@
+from PIL.Image import Image as ImageType
 from PIL import Image
+import concurrent.futures as cf
 from pytesseract import image_to_string
 import os
 import json
-import concurrent.futures as cf
 
 
 def getImages(folder="Kvittering/Processed/"):
-    return [Image.open(folder+name) for name in os.listdir(folder)]
+    return [(name, Image.open(folder+name)) for name in os.listdir(folder)]
 
 
-def processImage(img: Image):
-    return image_to_string(img, lang="nor+eng", config="--psm 4")
+def processImage(imageTup: tuple[str, ImageType]):
+    name, img = imageTup
+    return (name, image_to_string(img, lang="nor+eng", config="--psm 4"))
+
+
+def processBatch(imageTups: list[tuple[str, ImageType]]):
+    with cf.ProcessPoolExecutor(max_workers=12) as executor:
+        print(f"processing {len(imageTups)} images ")
+        receipts = []
+        for future in [executor.submit(processImage, imageTup) for imageTup in imageTups]:
+            receipts.append(future.result())
+            print(f"-> {len(receipts)}/{len(imageTups)} completed",
+                  end="\r", flush=True)
+
+    print("\ndone")
+    return receipts
 
 
 def toJsonFile(data: list, fileName="ocr_results.json"):
@@ -20,27 +35,13 @@ def toJsonFile(data: list, fileName="ocr_results.json"):
     print(f"saved to {fileName}")
 
 
-def processBatch(images):
-    with cf.ProcessPoolExecutor(max_workers=12) as executor:
-        print(f"processing {len(images)} images ")
-        futures = [executor.submit(processImage, image)
-                   for image in images]
-        texts = []
-        for future in cf.as_completed(futures):
-            texts.append(future.result())
-            print(f"-> {len(texts)}/{len(images)} completed",
-                  end="\r", flush=True)
-    print("\ndone")
-    return texts
-
-
 def main():
     print("ocr running")
-    images_to_ocr = getImages()
-    texts = processBatch(images_to_ocr)
-    toJsonFile(texts)
+    receipts = processBatch(getImages())
+    toJsonFile(receipts)
     print("ocr complete")
 
 
 if __name__ == "__main__":
     main()
+    # print(processBatch(getImages()[0:5]))
