@@ -1,34 +1,34 @@
+from PIL.Image import Image as ImageType
 from PIL import Image, ImageOps, ImageEnhance, ImageFilter
 import os
 
 
-def preprocess(img, x=550,
-               y=0,
-               right=1700,
-               bottom=3250):
+def imageCrop(img, boxCrop=(550, 0, 1700, 3250)):
+    return img.crop(boxCrop)
+
+
+def enhanceImage(img: ImageType):
+    img = img.convert("L")
+
+    img = img.filter(ImageFilter.MinFilter(size=3))
+    img = ImageEnhance.Brightness(img).enhance(1.5)
+    img = ImageEnhance.Contrast(img).enhance(1.5)
+    img = ImageEnhance.Sharpness(img).enhance(1.1)
+
+    img = img.point(lambda p: p * 1.1 if p > 220 else p * 0.8)
+    # mono
+    # img = img.convert('1')
+
+    return img
+
+
+def preprocess(img: ImageType):
 
     # apply whatever thransforms are in exif
     img = ImageOps.exif_transpose(img)
 
-    # we don't need the whole thing
-    img = img.crop((x, y, right, bottom))
-
-    # "denoise"
-    img = img.filter(ImageFilter.MedianFilter(size=3))
-    # sharpen
-    img = img.filter(ImageFilter.SHARPEN)
-    # "denoise"
-    img = img.filter(ImageFilter.MedianFilter(size=3))
-
-    # ENHANCE!
-    en = ImageEnhance.Color(img)
-    img = en.enhance(0)
-
-    en = ImageEnhance.Contrast(img)
-    img = en.enhance(2)
-
-    en = ImageEnhance.Brightness(img)
-    img = en.enhance(1.5)
+    img = imageCrop(img)
+    img = enhanceImage(img)
 
     # add border
     img = ImageOps.expand(img, border=100, fill='white')
@@ -60,3 +60,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    # preprocess(Image.open("test_raw2.jpg")).show()

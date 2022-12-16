@@ -1,3 +1,5 @@
-/Kvittering/*
+Kvittering
+__pycache__
 *.json
 *.jpg
+*.pyc
